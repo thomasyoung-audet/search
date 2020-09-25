@@ -1,6 +1,7 @@
 import re
 from porter import PorterStemmer
 
+
 def create_index():
     # ask if stop word removal
     # ask if stemming
@@ -46,10 +47,11 @@ def create_index():
                         if not word in stop_words:
                             fill_dict(word, term_dict, document_num, document_pos)
                     else:
-                        fill_dict(word, term_dict, document_num, document_pos)
+                        if word != '':
+                            fill_dict(word, term_dict, document_num, document_pos)
             if line.startswith(".T") or line.startswith(".W"):
                 start_scan = True
-    print_dict(term_dict, use_stop_word, use_stem)
+    print_dict(term_dict)
 
 
 def fill_dict(word, term_dict, document_num, document_pos):
@@ -66,19 +68,11 @@ def fill_dict(word, term_dict, document_num, document_pos):
         term_dict[word] = [[document_num, 1, [document_pos]]]
 
 
-def print_dict(term_dict, stop, stem):
-    dict_name = "dictionary"
-    posting_name = "postings"
-    if stop:
-        dict_name += "_stop_words"
-        posting_name += "_stop_words"
-    if stem:
-        dict_name += "_stemming"
-        posting_name += "_stemming"
-    f = open(dict_name + ".txt", "w")
-    g = open(posting_name + ".txt", "w")
+def print_dict(term_dict):
+    f = open("dictionary.txt", "w")
+    g = open("postings.txt", "w")
     for key, value in sorted(term_dict.items()):
-        f.write("[" + key + ", " + str(len(value)) + "]\n")
+        f.write("["+key + ", " + str(len(value)) + "]\n")
         g.write("[" + key + ", " + str(value) + "]\n")
     f.close()
     g.close()
