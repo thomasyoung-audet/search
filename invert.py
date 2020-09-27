@@ -40,7 +40,7 @@ def create_index():
                     document_pos += 1
                     # words are made lower case right from the start
                     word = word.lower()
-                    word = re.sub('[^A-Za-z0-9$-]+', '', word)
+                    word = re.sub('[^A-Za-z0-9$\-]+', '', word)
                     if use_stem:
                         word = stem(word)
                     if use_stop_word:
@@ -72,8 +72,8 @@ def print_dict(term_dict):
     f = open("dictionary.txt", "w")
     g = open("postings.txt", "w")
     for key, value in sorted(term_dict.items()):
-        f.write("["+key + ", " + str(len(value)) + "]\n")
-        g.write("[" + key + ", " + str(value) + "]\n")
+        f.write('["'+key + '", ' + str(len(value)) + "],\n")
+        g.write('["' + key + '", ' + str(value) + "],\n")
     f.close()
     g.close()
 
