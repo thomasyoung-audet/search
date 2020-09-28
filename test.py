@@ -1,21 +1,25 @@
 import json
 from timeit import default_timer as timer
+from porter import PorterStemmer
+
 
 def test():
+    stem = input("Was the stemmer used in the inversion? (Y/N)")
     return_times = []
-    f = open("dictionary.txt", "r")
-    content = f.read().replace('\n',' ')
-    dict_list = json.loads("[" + content[:-2] + "]")
     g = open("postings.txt", "r")
     content = g.read().replace('\n', ' ')
     post_list = json.loads("[" + content[:-2] + "]")
     h = open("cacm.all", "r")
     lines = h.readlines()
 
-    if f.mode == 'r' and g.mode == 'r' and h.mode == 'r':
-        input_txt = ""
-        while input_txt != "zzend":
-            input_txt = input("Enter a term to search for: ").lower()
+    if g.mode == 'r' and h.mode == 'r':
+        word = ""
+        while word != "zzend":
+            word = input("Enter a term to search for: ")
+            if stem == "Y":
+                p = PorterStemmer()
+                word =  p.stem(word, 0, len(word) - 1)
+
             # If the term is in one of the documents in the collection, the program should display the document
             # frequency
             # and all the documents which contain this term, for each document, it should display the document ID,
@@ -29,10 +33,10 @@ def test():
             # as a DF value. Is this bad?
             found = False
             start = timer()
-            for elem in dict_list:
-                if input_txt == elem[0]:
+            for elem in post_list:
+                if word == elem[0]:
                     found = True
-                    print("This term is found in " + str(elem[1]) + " documents.")
+                    print("This term is found in " + str(len(elem[1])) + " documents.")
                     break
             if found:
                 print("This search term is found in the following documents:")
@@ -40,42 +44,43 @@ def test():
                 # words
                 docdata = []
                 for entry in post_list:
-                    if entry[0] == input_txt:
+                    if entry[0] == word:
                         docdata += entry[1]
                         break
                 # docdata now has doc ID, TF, and positions for each document input_txt appears in
                 # now search in cacm for word data
                 count = 0
-                get_title_countdown = 0
+                get_title = False
                 abstract_bool = False
                 abstract_text = ""
                 title = ""
                 output = ""
                 found = False
                 for line in lines:
-                    if get_title_countdown != 0:
-                        get_title_countdown -= 1
                     if count == len(docdata):
                         break
                     if line.startswith(".I " + str(docdata[count][0])):
                         found = True
-                        get_title_countdown = 3
-                    if get_title_countdown == 1:
-                        title = line
                     if line == ".B\n" and found:
+                        get_title = False
                         abstract_bool = False
                         found = False
                         # I need to create the output string here, as its all going to be reset now.
                         output += "Document: - " + title + "Term frequency: " + str(docdata[count][1]) + "\n"\
                                   "First occurrence in document: " + \
-                                  getcontext(title + abstract_text, docdata[count][2][0]) + "\n"
+                                  getcontext(title + abstract_text, docdata[count][2][0]) + "\n" + "------------" + "\n"
                         title = ""
                         abstract_text = ""
                         count += 1
                     if abstract_bool:
                         abstract_text += line
                     if line == ".W\n" and found:
+                        get_title = False
                         abstract_bool = True
+                    if get_title:
+                        title += line
+                    if line == ".T\n" and found:
+                        get_title = True
 
                 end = timer()
                 elapsed_time = (end - start)
@@ -84,15 +89,13 @@ def test():
                 print("Search time: " + str(elapsed_time) + " seconds\n")
 
                 # output time to results
-            elif input_txt != "ZZEND":
+            elif word != "zzend":
                 print("Term not found in any documents")
         shutdown(return_times)
-        f.close()
         g.close()
         h.close()
     else:
         print("Error opening file. Try again.")
-    # average value of return times should be returned
 
 
 def getcontext(string, wordnum):
@@ -100,11 +103,14 @@ def getcontext(string, wordnum):
     if len(word_list) < 11:
         return string[:-1]
     elif wordnum < 5:
-        return ' '.join(word_list[:10])
+        words = ' '.join(word_list[:10])
+        return words
     elif wordnum > len(word_list)-10:
-        return ' '.join(word_list[10:])
+        words = ' '.join(word_list[-10:])
+        return words
     else:
-        return ' '.join(word_list[wordnum-5:wordnum+4])
+        words = ' '.join(word_list[wordnum-6:wordnum+4])
+        return words
 
 
 def shutdown(return_times):
