@@ -26,14 +26,12 @@ def create_index():
     f = open("cacm.all", "r")
     if f.mode == 'r':
         lines = f.readlines()
-        # I need to be keeping track of documents too
         for line in lines:
             if line.startswith("."):
                 start_scan = False
             if line.startswith(".I"):
                 document_num += 1
                 document_pos = 0
-
             if start_scan is True:
                 words = str.split(line)
                 for word in words:

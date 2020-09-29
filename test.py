@@ -15,31 +15,21 @@ def test():
     if g.mode == 'r' and h.mode == 'r':
         word = ""
         while word != "zzend":
-            word = input("Enter a term to search for: ")
+            word = input("Enter a term to search for: ").lower()
             if stem == "Y":
                 p = PorterStemmer()
-                word =  p.stem(word, 0, len(word) - 1)
+                word = p.stem(word, 0, len(word) - 1)
 
-            # If the term is in one of the documents in the collection, the program should display the document
-            # frequency
-            # and all the documents which contain this term, for each document, it should display the document ID,
-            # the title, the term frequency, all the positions the term occurs in that document, and a summary of the
-            # document highlighting the first occurrence of this term with 10 terms in its context.
-            # Each time, when user types in a valid term, the program should also output the time from getting the user
-            # input to outputting the results. Finally, when the program stops, the average value for above-mentioned
-            # time should also be displayed.
-
-            # output doc freq: from dictionary.txt. I actually dont need this file at all. I could use len(docdata)
-            # as a DF value. Is this bad?
             found = False
             start = timer()
             for elem in post_list:
                 if word == elem[0]:
                     found = True
-                    print("This term is found in " + str(len(elem[1])) + " documents.")
+                    print("\nThis term is found in " + str(len(elem[1])) + " documents.")
+                    print("=============================================================================")
                     break
             if found:
-                print("This search term is found in the following documents:")
+                print("This search term is found in the following documents:\n")
                 # output all docs that contain that term: DocID, title, TF, all the positions, first occurrence with 10
                 # words
                 docdata = []
@@ -119,7 +109,7 @@ def shutdown(return_times):
         acc += times
     if len(return_times) != 0:
         acc = acc / len(return_times)
-        print("Average return time was:" + str(acc) + " seconds")
+        print("Average return time was: " + str(acc) + " seconds")
     else:
         print("No searches were made. Avg return time 0.")
 
