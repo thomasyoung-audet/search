@@ -1,7 +1,7 @@
 import json
 from timeit import default_timer as timer
 from porter import PorterStemmer
-import math
+import numpy as np
 
 """
 You need to write a program search for the retrieval process using the vector space model. 
@@ -39,35 +39,38 @@ def search():
         query = ""
         while query != "zzend":
             # calculate query vector
-            query = "the the same string"  # input("Enter a term to search for: ").lower()
+            query = "1 01 0n 0n"  # input("Enter a term to search for: ").lower()
             query = query.split()
             query.sort()
-            query_dict = dict()
-            query_vector = []
-            for word in query:
-                if stem == "Y" or stem == "y":
+            query_vector = np.zeros(len(post_list))
+            if stem == "Y" or stem == "y":
+                new_query = ""
+                for word in query:
                     p = PorterStemmer()
                     word = p.stem(word, 0, len(word) - 1)
-                if word in query_dict:
-                    if query_dict[word] > 0:
-                        query_dict[word] += 1
-                else:
-                    query_dict[word] = 1
-            # calculate tf, w, and create vector
-            for word, value in sorted(query_dict.items()):
-                query_dict[word] = 1 + math.log10(query_dict[word])
-                query_vector.append(query_dict[word])
-                query_dict[word] = 0
+                    new_query += word
+                query = new_query
+            term_list = []
+            j = 0
+            term_list, query_vector = fill_query_vector(query, post_list, query_vector)
+            # remove duplicates if they exist
+            term_list = list(dict.fromkeys(term_list))
+
+            # calculate tf, which is the same as w
+            for term in term_list:
+                query_vector[term] = 1 + np.log10(query_vector[term])
 
             # now for the document vectors
             # calculate idf values, get postings
             for entry in post_list:
                 if entry[0] in query_dict:
-                    idf = math.log10(len(post_list) / (len(entry[1]) - 1))
+                    idf = np.log10(len(post_list) / (len(entry[1]) - 1))
                     entry.append(idf)
                     query_dict[entry[0]] = entry
             # turn into vectors for each document
             document_vectors = dict()
+            document_vectors["idf"] = []
+
             i = -1
             for term, term_posting in sorted(query_dict.items()):  # for each term
                 i += 1
@@ -77,9 +80,30 @@ def search():
                     else:
                         document_vectors[item[0]] = [0, 0, 0]
                         document_vectors[item[0]][i] = item[1]
+                # add idf
+                document_vectors["idf"].append(term_posting[2])
             # now, make all of those vectors have tf values, and then weights
             # TODO need document lenghts
-            
+            for doc, vector in document_vectors.items():
+                if doc != "idf":
+                    for i in range(len(vector)):
+                        if vector[i] != 0:
+                            vector[i] = (1 + np.log10(vector[i])) * document_vectors["idf"][i]
+            print("bla")
+
+            # now for the cosine similarity
+            # 1. query
+
+def fill_query_vector(query, post_list, query_vector):
+    term_list = []
+    j = 0
+    for i in range(len(post_list)):
+        while query[j] == post_list[i][0]:
+            term_list.append(i)
+            query_vector[i] += 1
+            j += 1
+            if j == len(query):
+                return term_list, query_vector
 
 
 def shutdown(return_times):
