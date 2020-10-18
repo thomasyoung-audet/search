@@ -35,6 +35,10 @@ def search():
     # do normalization on the weights
     # calculate cosine similarity
 
+    idf_list = []
+    extracted_postings = []
+    query_vector = np.zeros(len(post_list))
+
     while g.mode == 'r':
         query = ""
         while query != "zzend":
@@ -42,7 +46,6 @@ def search():
             query = "1 01 0n 0n"  # input("Enter a term to search for: ").lower()
             query = query.split()
             query.sort()
-            query_vector = np.zeros(len(post_list))
             if stem == "Y" or stem == "y":
                 new_query = ""
                 for word in query:
@@ -50,8 +53,7 @@ def search():
                     word = p.stem(word, 0, len(word) - 1)
                     new_query += word
                 query = new_query
-            term_list = []
-            j = 0
+
             term_list, query_vector = fill_query_vector(query, post_list, query_vector)
             # remove duplicates if they exist
             term_list = list(dict.fromkeys(term_list))
@@ -62,26 +64,20 @@ def search():
 
             # now for the document vectors
             # calculate idf values, get postings
-            for entry in post_list:
-                if entry[0] in query_dict:
-                    idf = np.log10(len(post_list) / (len(entry[1]) - 1))
-                    entry.append(idf)
-                    query_dict[entry[0]] = entry
+            for entry in term_list:
+                idf = np.log10(len(post_list) / (len(post_list[entry]) - 1))
+                idf_list.append(idf)
+                extracted_postings.append(post_list[entry])
             # turn into vectors for each document
             document_vectors = dict()
-            document_vectors["idf"] = []
 
-            i = -1
-            for term, term_posting in sorted(query_dict.items()):  # for each term
-                i += 1
+            for term_posting in extracted_postings:  # for each term
                 for item in term_posting[1]:  # for each document
                     if item[0] in document_vectors:
-                        document_vectors[item[0]][i] += item[1]
+                        document_vectors[item[0]][extracted_postings.index(term_posting)] += item[1]
                     else:
-                        document_vectors[item[0]] = [0, 0, 0]
-                        document_vectors[item[0]][i] = item[1]
-                # add idf
-                document_vectors["idf"].append(term_posting[2])
+                        document_vectors[item[0]] = np.zeros(len(post_list))
+                        document_vectors[item[0]][extracted_postings.index(term_posting)] = item[1]
             # now, make all of those vectors have tf values, and then weights
             # TODO need document lenghts
             for doc, vector in document_vectors.items():
