@@ -20,15 +20,15 @@ def test():
                 p = PorterStemmer()
                 word = p.stem(word, 0, len(word) - 1)
 
-            found = False
+            found_word = False
             start = timer()
             for elem in post_list:
                 if word == elem[0]:
-                    found = True
+                    found_word = True
                     print("\nThis term is found in " + str(len(elem[1])) + " documents.")
                     print("=============================================================================")
                     break
-            if found:
+            if found_word:
                 print("This search term is found in the following documents:\n")
                 # output all docs that contain that term: DocID, title, TF, all the positions, first occurrence with 10
                 # words
@@ -56,8 +56,9 @@ def test():
                         abstract_bool = False
                         found = False
                         # I need to create the output string here, as its all going to be reset now.
-                        output += "Document: - " + title + "Term frequency: " + str(docdata[count][1]) + "\n"\
-                                  "First occurrence in document: " + \
+                        output += "Document " + str(docdata[count][0]) + " - " + title + "Term frequency: " + \
+                                  str(docdata[count][1]) + "\nList of positions: " + str(docdata[count][2]) + \
+                                  "\nFirst occurrence in document: " + \
                                   getcontext(title + abstract_text, docdata[count][2][0]) + "\n" + "------------" + "\n"
                         title = ""
                         abstract_text = ""
@@ -74,7 +75,8 @@ def test():
 
                 end = timer()
                 elapsed_time = (end - start)
-                return_times += [elapsed_time]
+                if found_word:
+                    return_times += [elapsed_time]
                 print(output)
                 print("Search time: " + str(elapsed_time) + " seconds\n")
 
@@ -95,11 +97,11 @@ def getcontext(string, wordnum):
     elif wordnum < 5:
         words = ' '.join(word_list[:10])
         return words
-    elif wordnum > len(word_list)-10:
+    elif wordnum > len(word_list) - 10:
         words = ' '.join(word_list[-10:])
         return words
     else:
-        words = ' '.join(word_list[wordnum-6:wordnum+4])
+        words = ' '.join(word_list[wordnum - 6:wordnum + 4])
         return words
 
 
