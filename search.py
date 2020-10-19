@@ -20,7 +20,7 @@ and in this case, the output will only be a list of K relevant documents with th
 """
 
 
-def lookup(input):
+def lookup(input, CLI):
     use_stem = False
     stop_words = False
     g = open("postings.txt", "r")
@@ -74,7 +74,8 @@ def lookup(input):
         temp_list.sort(key=lambda x: x[1])
         temp_list.reverse()
         print("Query was: " + og_query + "\n")
-        display(temp_list, get_doc_info(docs, lines))
+        if CLI:
+            display(temp_list, get_doc_info(docs, lines))
         for elem in temp_list:
             final_list.append(elem[0])
         return final_list
@@ -254,4 +255,5 @@ def stem(word):
 
 if __name__ == "__main__":
     query = input("Enter query: ").lower()
-    lookup(query)
+    someone_is_using_the_CLI = True
+    lookup(query, someone_is_using_the_CLI)
