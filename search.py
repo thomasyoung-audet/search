@@ -21,28 +21,32 @@ and in this case, the output will only be a list of K relevant documents with th
 
 
 def search():
-    return_times = []
-    stem = "N"  # input("Was the stemmer used in the inversion? (Y/N)")
-    stop_words = "N"  # input("Were stop words removed in the inversion? (Y/N)")
+    stem = False
+    stop_words = False
     g = open("postings.txt", "r")
-    h = open("doc_lengths.txt", "r")
-    f = open("test_cacm.all", "r")
+    f = open("cacm.all", "r")
     content = g.read().replace('\n', ' ')
-    post_list = json.loads("[" + content[:-2] + "]")
-
+    if content[0] == "1":
+        stem = True
+    if content[1] == "1":
+        stop_words = True
+    post_list = json.loads("[" + content[2:-2] + "]")
+    lines = f.readlines()
+    f.close()
     # I need to take the inverted list, and create a file that holds a document vector for each document in
     # the collection.
     extracted_postings = []
-    query_vector = np.zeros(len(post_list))
+    query = ""
+    docs = []
+    final_list = []
 
-    while g.mode == 'r' and h.mode == 'r':
-        query = ""
+    if g.mode == 'r':
         while query != "zzend":
             # calculate query vector
-            og_query = "77 analysis technique noise"  # input("Enter a term to search for: ").lower()
+            og_query = "77 analysis technique noise preliminary"  # input("Enter a term to search for: ").lower()
             query = og_query.split()
             query.sort()
-            if stem == "Y" or stem == "y":
+            if stem:
                 new_query = ""
                 for word in query:
                     p = PorterStemmer()
@@ -57,24 +61,23 @@ def search():
             for entry in term_list:
                 extracted_postings.append(post_list[entry])
             # # get docs out of extracted postings
-            docs = []
             for posting in extracted_postings:
                 for entry in posting[1]:
                     docs.append(entry[0])
             docs = list(dict.fromkeys(docs))
             docs.sort()
-            document_vectors = get_doc_vector(docs, f, stem, stop_words, post_list)
+            document_vectors = get_doc_vector(docs, lines, stem, stop_words)
 
             # now, make all of those vectors have tf values, and then weights
             cosine_list = fill_vectors(document_vectors, og_query, docs)
-            final_list = []
             for i in range(len(docs)):
                 final_list.append([docs[i], cosine_list[i]])
             final_list.sort(key=lambda x: x[1])
             final_list.reverse()
-            print("Query was: " + og_query)
-            for item in final_list:
-                print("Doc " + str(item[0]) + " with cosine similarity of " + str(item[1]))
+            print("Query was: " + og_query + "\n")
+            display(final_list, get_doc_info(docs, lines))
+
+            query = "zzend"
 
 
 def get_term_lists(query, post_list):
@@ -88,45 +91,46 @@ def get_term_lists(query, post_list):
                 return term_list
 
 
-def get_doc_vector(docs, f, stem, stop_words, postings):
+def get_doc_vector(docs, lines, stem, use_stop_word):
+    stop_words = []
+    if use_stop_word:
+        stop_words = open("stopwords.txt", "r").read().split('\n')
     i = 0
     document_text = ""
     documents = []
     start_scan = False
     scan_doc = False
-    if f.mode == 'r':
-        lines = f.readlines()
-        for line in lines:
-            if line.startswith("."):
-                start_scan = False
-            if line.startswith(".I " + str(docs[i])):
-                scan_doc = True
-            if start_scan is True and scan_doc is True:
-                words = str.split(line)
-                for word in words:
-                    # words are made lower case right from the start
-                    word = word.lower()
-                    word = re.sub('[^A-Za-z0-9$\-]+', '', word)
-                    if stem == "Y":
-                        word = stem(word)
-                    if stop_words == "Y":
-                        if not word in stop_words:
-                            document_text += word + " "
-                    else:
-                        if word != '':
-                            document_text += word + " "
-            if (line.startswith(".T") or line.startswith(".W")) and scan_doc:
-                start_scan = True
-            if line.startswith(".B") and scan_doc == True:
-                scan_doc = False
-                documents.append(document_text)
-                document_text = ""
-                if i < len(docs) - 1:
-                    i += 1
+    for line in lines:
+        if line.startswith("."):
+            start_scan = False
+        if line.startswith(".I " + str(docs[i])):
+            scan_doc = True
+        if start_scan is True and scan_doc is True:
+            words = str.split(line)
+            for word in words:
+                # words are made lower case right from the start
+                word = word.lower()
+                word = re.sub('[^A-Za-z0-9$\-]+', '', word)
+                if stem:
+                    word = stem(word)
+                if use_stop_word:
+                    if not word in stop_words:
+                        document_text += word + " "
                 else:
-                    break
+                    if word != '':
+                        document_text += word + " "
+        if (line.startswith(".T") or line.startswith(".W")) and scan_doc:
+            start_scan = True
+        if line.startswith(".B") and scan_doc == True:
+            scan_doc = False
+            documents.append(document_text)
+            document_text = ""
+            if i < len(docs) - 1:
+                i += 1
+            else:
+                break
 
-        return documents
+    return documents
 
 
 def fill_vectors(documents, query, names):
@@ -157,6 +161,79 @@ def fill_vectors(documents, query, names):
     cosine_similarity = cosine_matrix.sum(axis=0)
     return cosine_similarity
 
+
+def display(result_list, info_list):
+    # display rank order, document title and document author
+    # display 20 and ask to display all
+    rank = 1
+    for i in range(len(result_list)):
+        if i == 20:
+            continue_printing = input("\n Do you want to see the rest of the results?(Y/N)")
+            if continue_printing == "N":
+                return
+        print("=======================")
+        print(str(rank) + ". Document: " + str(result_list[i][0]))
+        doc_entry = binarySearch(info_list, 0, len(info_list), result_list[i])
+        print("Title: " + info_list[doc_entry][1])
+        print("Author: " + info_list[doc_entry][2])
+        rank += 1
+
+
+def binarySearch(arr, left, right, x):
+    # Check base case
+    if right >= left:
+        mid = left + (right - left) // 2
+        # If element is present at the middle itself
+        if arr[mid][0] == x[0]:
+            return mid
+            # If element is smaller than mid, then it
+        # can only be present in left subarray
+        elif arr[mid][0] > x[0]:
+            return binarySearch(arr, left, mid - 1, x)
+            # Else the element can only be present
+        # in right subarray
+        else:
+            return binarySearch(arr, mid + 1, right, x)
+    else:
+        # Element is not present in the array
+        return -1
+
+
+def get_doc_info(docs, lines):
+    i = 0
+    doc_title = ""
+    doc_author = ""
+    info_list = []
+    start_scan = False
+    scan_doc = False
+    scan_bit = True
+    for line in lines:
+        if line.startswith("."):
+            start_scan = False
+        if line.startswith(".I " + str(docs[i])):
+            scan_doc = True
+        if start_scan is True and scan_doc is True:
+            line = line.strip('\n')
+            if scan_bit:
+                doc_title += line
+            else:
+                doc_author += line
+        if line.startswith(".T") and scan_doc:
+            start_scan = True
+            scan_bit = True
+        if line.startswith(".A") and scan_doc:
+            start_scan = True
+            scan_bit = False
+        if line.startswith(".X") and scan_doc:
+            scan_doc = False
+            info_list.append([docs[i], doc_title, doc_author])
+            doc_author = doc_title = ""
+            if i < len(docs) - 1:
+                i += 1
+            else:
+                break
+
+    return info_list
 
 def shutdown(return_times):
     acc = 0
