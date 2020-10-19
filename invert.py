@@ -49,7 +49,7 @@ def create_index():
                             fill_dict(word, term_dict, document_num, document_pos)
             if line.startswith(".T") or line.startswith(".W"):
                 start_scan = True
-    print_dict(term_dict)
+    print_dict(term_dict, use_stem, use_stop_word)
 
 
 def fill_dict(word, term_dict, document_num, document_pos):
@@ -66,13 +66,18 @@ def fill_dict(word, term_dict, document_num, document_pos):
         term_dict[word] = [[document_num, 1, [document_pos]]]
 
 
-def print_dict(term_dict):
-    f = open("dictionary.txt", "w")
+def print_dict(term_dict, use_stem, use_stop):
     g = open("postings.txt", "w")
+    if use_stem:
+        g.write("1")
+    else:
+        g.write("0")
+    if use_stop:
+        g.write("1\n")
+    else:
+        g.write("0\n")
     for key, value in sorted(term_dict.items()):
-        f.write('["'+key + '", ' + str(len(value)) + "],\n")
         g.write('["' + key + '", ' + str(value) + "],\n")
-    f.close()
     g.close()
 
 
