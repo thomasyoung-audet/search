@@ -65,26 +65,26 @@ def search():
             # now for the document vectors
             # calculate idf values, get postings
             for entry in term_list:
-                idf = np.log10(len(post_list) / (len(post_list[entry]) - 1))
+                idf = np.log10(len(post_list) / (len(post_list[entry][1])))
                 idf_list.append(idf)
                 extracted_postings.append(post_list[entry])
             # turn into vectors for each document
             document_vectors = dict()
-
+            i = -1
             for term_posting in extracted_postings:  # for each term
+                i += 1
                 for item in term_posting[1]:  # for each document
                     if item[0] in document_vectors:
-                        document_vectors[item[0]][extracted_postings.index(term_posting)] += item[1]
+                        document_vectors[item[0]][term_list[i]] += item[1]
                     else:
                         document_vectors[item[0]] = np.zeros(len(post_list))
-                        document_vectors[item[0]][extracted_postings.index(term_posting)] = item[1]
+                        document_vectors[item[0]][term_list[i]] = item[1]
             # now, make all of those vectors have tf values, and then weights
             # TODO need document lenghts
             for doc, vector in document_vectors.items():
-                if doc != "idf":
-                    for i in range(len(vector)):
-                        if vector[i] != 0:
-                            vector[i] = (1 + np.log10(vector[i])) * document_vectors["idf"][i]
+                for i in range(len(vector)):
+                    if vector[i] != 0:
+                        vector[i] = (1 + np.log10(vector[i])) * document_vectors["idf"][i]
             print("bla")
 
             # now for the cosine similarity
