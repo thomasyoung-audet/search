@@ -27,6 +27,7 @@ def eval():
     rel_context = rels.read().replace('\n', ' ').split()
     g.close()
     rel_context = list(filter('0'.__ne__, rel_context))
+    rel_context = [int(x) for x in rel_context]
     rel_keys = rel_context[0::2]
     relevance_dict = dict.fromkeys(rel_keys)
     i = 1
@@ -41,15 +42,20 @@ def eval():
     q.close()
 
     querylist = get_queries(query_content, stem, stop_words)
-
+    querylist[0] = "tss time sharing system operating system ibm computer"
     result_list = []
     # for query in querylist:
     #    result_list.append(search.lookup(query))
-    result_list.append(search.lookup(querylist[0]))
+    result_list.append(search.lookup(querylist[0], False))
 
     # calculate Mean Average Precision
     # calculate average precision for each query, then average those
+    average_precisions = []
+    for i in range(len(result_list)):
+        average_precisions.append(get_avg_prec(result_list[i], querylist[i]))
+    MAP = sum(average_precisions)/len(average_precisions)
 
+    print("MAP is: " + str(MAP))
 
     # calculate R-precision
 
