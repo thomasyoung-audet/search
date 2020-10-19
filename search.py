@@ -1,10 +1,10 @@
 import json
 from timeit import default_timer as timer
-from porter import PorterStemmer
 import numpy as np
 import re
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
+from porter import PorterStemmer
 
 """
 You need to write a program search for the retrieval process using the vector space model. 
@@ -20,64 +20,64 @@ and in this case, the output will only be a list of K relevant documents with th
 """
 
 
-def search():
-    stem = False
+def lookup(input):
+    use_stem = False
     stop_words = False
     g = open("postings.txt", "r")
     f = open("cacm.all", "r")
     content = g.read().replace('\n', ' ')
     if content[0] == "1":
-        stem = True
+        use_stem = True
     if content[1] == "1":
         stop_words = True
     post_list = json.loads("[" + content[2:-2] + "]")
     lines = f.readlines()
     f.close()
-    # I need to take the inverted list, and create a file that holds a document vector for each document in
-    # the collection.
     extracted_postings = []
-    query = ""
     docs = []
     final_list = []
 
     if g.mode == 'r':
-        while query != "zzend":
-            # calculate query vector
-            og_query = "77 analysis technique noise preliminary"  # input("Enter a term to search for: ").lower()
-            query = og_query.split()
-            query.sort()
-            if stem:
-                new_query = ""
-                for word in query:
-                    p = PorterStemmer()
-                    word = p.stem(word, 0, len(word) - 1)
-                    new_query += word
-                query = new_query
+        # get query
+        # og_query = input("Enter query: ").lower()
+        og_query = input
+        og_query = re.sub('[^A-Za-z0-9$\- ]+', '', og_query)
+        newquery = og_query.split()
+        newquery.sort()
+        if use_stem:
+            stemmed_query = ""
+            for word in newquery:
+                p = PorterStemmer()
+                word = p.stem(word, 0, len(word) - 1)
+                stemmed_query += word
+            newquery = stemmed_query
 
-            term_list = get_term_lists(query, post_list)
-            # remove duplicates if they exist
-            term_list = list(dict.fromkeys(term_list))
+        term_list = get_term_lists(newquery, post_list)
+        # remove duplicates if they exist
+        term_list = list(dict.fromkeys(term_list))
 
-            for entry in term_list:
-                extracted_postings.append(post_list[entry])
-            # # get docs out of extracted postings
-            for posting in extracted_postings:
-                for entry in posting[1]:
-                    docs.append(entry[0])
-            docs = list(dict.fromkeys(docs))
-            docs.sort()
-            document_vectors = get_doc_vector(docs, lines, stem, stop_words)
+        for entry in term_list:
+            extracted_postings.append(post_list[entry])
+        # get docs out of extracted postings
+        for posting in extracted_postings:
+            for entry in posting[1]:
+                docs.append(entry[0])
+        docs = list(dict.fromkeys(docs))
+        docs.sort()
+        document_vectors = get_doc_vector(docs, lines, use_stem, stop_words)
 
-            # now, make all of those vectors have tf values, and then weights
-            cosine_list = fill_vectors(document_vectors, og_query, docs)
-            for i in range(len(docs)):
-                final_list.append([docs[i], cosine_list[i]])
-            final_list.sort(key=lambda x: x[1])
-            final_list.reverse()
-            print("Query was: " + og_query + "\n")
-            display(final_list, get_doc_info(docs, lines))
-
-            query = "zzend"
+        # now, make all of those vectors have tf values, and then weights
+        cosine_list = fill_vectors(document_vectors, og_query, docs)
+        temp_list = []
+        for i in range(len(docs)):
+            temp_list.append([docs[i], cosine_list[i]])
+        temp_list.sort(key=lambda x: x[1])
+        temp_list.reverse()
+        print("Query was: " + og_query + "\n")
+        display(temp_list, get_doc_info(docs, lines))
+        for elem in temp_list:
+            final_list.append(elem[0])
+        return final_list
 
 
 def get_term_lists(query, post_list):
@@ -91,7 +91,7 @@ def get_term_lists(query, post_list):
                 return term_list
 
 
-def get_doc_vector(docs, lines, stem, use_stop_word):
+def get_doc_vector(docs, lines, use_stem, use_stop_word):
     stop_words = []
     if use_stop_word:
         stop_words = open("stopwords.txt", "r").read().split('\n')
@@ -111,7 +111,7 @@ def get_doc_vector(docs, lines, stem, use_stop_word):
                 # words are made lower case right from the start
                 word = word.lower()
                 word = re.sub('[^A-Za-z0-9$\-]+', '', word)
-                if stem:
+                if use_stem:
                     word = stem(word)
                 if use_stop_word:
                     if not word in stop_words:
@@ -173,13 +173,13 @@ def display(result_list, info_list):
                 return
         print("=======================")
         print(str(rank) + ". Document: " + str(result_list[i][0]))
-        doc_entry = binarySearch(info_list, 0, len(info_list), result_list[i])
+        doc_entry = modified_binary_search(info_list, 0, len(info_list), result_list[i])
         print("Title: " + info_list[doc_entry][1])
         print("Author: " + info_list[doc_entry][2])
         rank += 1
 
 
-def binarySearch(arr, left, right, x):
+def modified_binary_search(arr, left, right, x):
     # Check base case
     if right >= left:
         mid = left + (right - left) // 2
@@ -189,11 +189,11 @@ def binarySearch(arr, left, right, x):
             # If element is smaller than mid, then it
         # can only be present in left subarray
         elif arr[mid][0] > x[0]:
-            return binarySearch(arr, left, mid - 1, x)
+            return modified_binary_search(arr, left, mid - 1, x)
             # Else the element can only be present
         # in right subarray
         else:
-            return binarySearch(arr, mid + 1, right, x)
+            return modified_binary_search(arr, mid + 1, right, x)
     else:
         # Element is not present in the array
         return -1
@@ -213,7 +213,7 @@ def get_doc_info(docs, lines):
         if line.startswith(".I " + str(docs[i])):
             scan_doc = True
         if start_scan is True and scan_doc is True:
-            line = line.strip('\n')
+            line = line.replace('\n', " ")
             if scan_bit:
                 doc_title += line
             else:
@@ -235,6 +235,7 @@ def get_doc_info(docs, lines):
 
     return info_list
 
+
 def shutdown(return_times):
     acc = 0
     for times in return_times:
@@ -246,5 +247,11 @@ def shutdown(return_times):
         print("No searches were made. Avg return time 0.")
 
 
+def stem(word):
+    p = PorterStemmer()
+    return p.stem(word, 0, len(word) - 1)
+
+
 if __name__ == "__main__":
-    search()
+    query = input("Enter query: ").lower()
+    lookup(query)
