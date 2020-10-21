@@ -13,7 +13,7 @@ The final output will be the average MAP and R-Precision values over all queries
 """
 
 
-def eval():
+def evaluate():
     stem = False
     stop_words = False
     g = open("postings.txt", "r")
@@ -48,32 +48,32 @@ def eval():
     #    result_list.append(search.lookup(query))
     result_list.append(search.lookup(querylist[0], False))
 
-    # calculate Mean Average Precision
+    # calculate Mean Average Precision and R-precision
     # calculate average precision for each query, then average those
     average_precisions = []
+    r_precisions = []
     for i in range(len(result_list)):
-        average_precisions.append(get_avg_prec(result_list[i], querylist[i]))
+        average_precisions.append(get_avg_prec(result_list[i], querylist[i])[0])
+        r_precisions.append(get_avg_prec(result_list[i], querylist[i])[1])
     MAP = sum(average_precisions)/len(average_precisions)
+    R_PREC = sum(r_precisions) / len(r_precisions)
 
     print("MAP is: " + str(MAP))
-
-    # calculate R-precision
-
-
-
-
+    print("R-Precision is: " + str(R_PREC))
 
 
 def get_avg_prec(query_results, relevant_results):
     relevant_found = 0
     total_found = 0
     precision_history = []
+    r_precision = 0
     for result in query_results:
         if result in relevant_results:
             relevant_found += 1
         total_found += 1
         precision_history.append(relevant_found/total_found)
-    return sum(precision_history)/len(relevant_results)
+    r_precision = relevant_found/len(query_results)
+    return [sum(precision_history)/len(relevant_results), r_precision]
 
 
 def get_queries(lines, use_stem, use_stop_word):
@@ -115,4 +115,4 @@ def stem(word):
 
 
 if __name__ == "__main__":
-    eval()
+    evaluate()
