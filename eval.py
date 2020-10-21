@@ -23,13 +23,18 @@ def evaluate():
     if check[1] == "1":
         stop_words = True
     g.close()
+
+    q = open("query.text", "r")
+    query_content = q.readlines()
+    q.close()
+    querylist = get_queries(query_content, stem, stop_words)
+
     rels = open("qrels.text", "r")
     rel_context = rels.read().replace('\n', ' ').split()
     g.close()
     rel_context = list(filter('0'.__ne__, rel_context))
     rel_context = [int(x) for x in rel_context]
-    rel_keys = rel_context[0::2]
-    relevance_dict = dict.fromkeys(rel_keys)
+    relevance_dict = dict.fromkeys(range(1, len(querylist)+1))
     i = 1
     while i < len(rel_context):
         if relevance_dict[rel_context[i-1]] is None:
@@ -37,24 +42,22 @@ def evaluate():
         relevance_dict[rel_context[i - 1]].append(rel_context[i])
         i += 2
 
-    q = open("query.text", "r")
-    query_content = q.readlines()
-    q.close()
 
-    querylist = get_queries(query_content, stem, stop_words)
     querylist[0] = "tss time sharing system operating system ibm computer"
     result_list = []
     # for query in querylist:
     #    result_list.append(search.lookup(query))
-    result_list.append(search.lookup(querylist[0], False))
+    #    print("==========================")
+    result_list.append(search.lookup(querylist[0], False, 40))
 
     # calculate Mean Average Precision and R-precision
     # calculate average precision for each query, then average those
+    print("calculating MAP/R-P")
     average_precisions = []
     r_precisions = []
     for i in range(len(result_list)):
-        average_precisions.append(get_avg_prec(result_list[i], querylist[i])[0])
-        r_precisions.append(get_avg_prec(result_list[i], querylist[i])[1])
+        average_precisions.append(get_avg_prec(result_list[i], relevance_dict[i+1])[0])
+        r_precisions.append(get_avg_prec(result_list[i], relevance_dict[i+1])[1])
     MAP = sum(average_precisions)/len(average_precisions)
     R_PREC = sum(r_precisions) / len(r_precisions)
 
@@ -66,7 +69,6 @@ def get_avg_prec(query_results, relevant_results):
     relevant_found = 0
     total_found = 0
     precision_history = []
-    r_precision = 0
     for result in query_results:
         if result in relevant_results:
             relevant_found += 1
