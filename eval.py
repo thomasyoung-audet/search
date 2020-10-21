@@ -24,45 +24,45 @@ def evaluate():
         stop_words = True
     g.close()
 
-    q = open("query.text", "r")
+    q = open("test_query.text", "r")
     query_content = q.readlines()
     q.close()
     querylist = get_queries(query_content, stem, stop_words)
 
-    rels = open("qrels.text", "r")
+    rels = open("test_qrels.text", "r")
     rel_context = rels.read().replace('\n', ' ').split()
     g.close()
     rel_context = list(filter('0'.__ne__, rel_context))
     rel_context = [int(x) for x in rel_context]
-    relevance_dict = dict.fromkeys(range(1, len(querylist)+1))
+    relevance_dict = dict.fromkeys(range(1, len(querylist) + 1))
     i = 1
     while i < len(rel_context):
-        if relevance_dict[rel_context[i-1]] is None:
+        if relevance_dict[rel_context[i - 1]] is None:
             relevance_dict[rel_context[i - 1]] = []
         relevance_dict[rel_context[i - 1]].append(rel_context[i])
         i += 2
 
-
-    # querylist[0] = "I am interested in articles written either by Prieve or Udo Pooch"
-    querylist[0] = "tss time sharing system operating system ibm computer"
     result_list = []
-    # for query in querylist:
-    #    result_list.append(search.lookup(query))
-    #    print("==========================")
-    result_list.append(search.lookup(querylist[0], False, 40))
-
+    i = 1
+    for query in querylist:
+        print("Query #" + str(i))
+        result_list.append(search.lookup(query, False, 40))
+        print("==========================")
+        i += 1
+    # query = 'Articles on text formatting systems, including "what you see is what you get" systems.  Examples: t/nroff, scribe, bravo.'
+    # result_list.append(search.lookup(query, False, 40))
     # calculate Mean Average Precision and R-precision
     # calculate average precision for each query, then average those
     print("calculating MAP/R-P")
     average_precisions = []
     r_precisions = []
     for i in range(len(result_list)):
-        average_precisions.append(get_avg_prec(result_list[i], relevance_dict[i+1])[0])
-        r_precisions.append(get_avg_prec(result_list[i], relevance_dict[i+1])[1])
-    MAP = sum(average_precisions)/len(average_precisions)
+        average_precisions.append(get_avg_prec(result_list[i], relevance_dict[i + 1])[0])
+        r_precisions.append(get_avg_prec(result_list[i], relevance_dict[i + 1])[1])
+    MAP = sum(average_precisions) / len(average_precisions)
     R_PREC = sum(r_precisions) / len(r_precisions)
 
-    print("MAP is: " + str(MAP))
+    print("\nMAP is: " + str(MAP))
     print("R-Precision is: " + str(R_PREC))
 
 
@@ -74,9 +74,9 @@ def get_avg_prec(query_results, relevant_results):
         if result in relevant_results:
             relevant_found += 1
         total_found += 1
-        precision_history.append(relevant_found/total_found)
-    r_precision = relevant_found/len(query_results)
-    return [sum(precision_history)/len(relevant_results), r_precision]
+        precision_history.append(relevant_found / total_found)
+    r_precision = relevant_found / len(query_results)
+    return [sum(precision_history) / len(relevant_results), r_precision]
 
 
 def get_queries(lines, use_stem, use_stop_word):

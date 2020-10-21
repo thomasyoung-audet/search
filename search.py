@@ -45,12 +45,14 @@ def lookup(user_input, CLI, K):
         newquery = og_query.split()
 
         if stop_words:
+            temp = []
             stop_words = open("stopwords.txt", "r").read().split('\n')
             for i in range(len(stop_words)):
                 stop_words[i] = stop_words[i].lower()
-            for word in og_query:
+            for word in newquery:
                 if word not in stop_words:
-                    newquery.append(word)
+                    temp.append(word)
+            newquery = temp
         if use_stem:
             stemmed_query = ""
             for word in newquery:
@@ -99,7 +101,10 @@ def get_term_lists(query, post_list):
     last_result = 0
     while i < len(post_list) + 1:
         if i == len(post_list):
-            j += 1
+            if j < len(query): j += 1
+            if j == len(query):
+                return term_list
+
             i = last_result
         while query[j] == post_list[i][0]:
             term_list.append(i)
@@ -109,6 +114,7 @@ def get_term_lists(query, post_list):
                 return term_list
         i += 1
     return None
+
 
 def get_doc_vector(docs, lines, use_stem, use_stop_word):
     stop_words = []
@@ -142,7 +148,7 @@ def get_doc_vector(docs, lines, use_stem, use_stop_word):
                         document_text += word + " "
         if (line.startswith(".T") or line.startswith(".W") or line.startswith(".A")) and scan_doc:
             start_scan = True
-        if line.startswith(".B") and scan_doc == True:
+        if line.startswith(".X") and scan_doc == True:
             scan_doc = False
             documents.append(document_text)
             document_text = ""
@@ -165,6 +171,7 @@ def fill_vectors(documents, query, names):
 
     df1 = pd.DataFrame({"Query": [query]})
     df2 = pd.DataFrame([documents])
+    df2.columns = names
     df1 = df1.join(df2)
 
     # Initialize
@@ -172,7 +179,7 @@ def fill_vectors(documents, query, names):
     # Create dataFrame
     df2 = pd.DataFrame(doc_vec.toarray().transpose(), index=vectorizer.get_feature_names())
     # Change column headers
-    df2.columns = df1.columns
+    df1.columns = df2.columns
     arr = df2.to_numpy()
     query_vector = arr[:, 0]
     doc_matrix = np.delete(arr, 0, 1)
