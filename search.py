@@ -20,7 +20,7 @@ and in this case, the output will only be a list of K relevant documents with th
 """
 
 
-def lookup(input, CLI):
+def lookup(input, CLI, K):
     use_stem = False
     stop_words = False
     g = open("postings.txt", "r")
@@ -39,18 +39,19 @@ def lookup(input, CLI):
 
     if g.mode == 'r':
         # get query
-        # og_query = input("Enter query: ").lower()
         og_query = input
-        og_query = re.sub('[^A-Za-z0-9$\- ]+', '', og_query)
+        og_query = re.sub('[\-]+', ' ', og_query)
+        og_query = re.sub('[^A-Za-z0-9$ ]+', '', og_query)
         newquery = og_query.split()
-        newquery.sort()
+
         if use_stem:
             stemmed_query = ""
             for word in newquery:
                 p = PorterStemmer()
                 word = p.stem(word, 0, len(word) - 1)
-                stemmed_query += word
-            newquery = stemmed_query
+                stemmed_query += word + " "
+            newquery = stemmed_query.split()
+        newquery.sort()
 
         term_list = get_term_lists(newquery, post_list)
         # remove duplicates if they exist
@@ -65,7 +66,7 @@ def lookup(input, CLI):
         docs = list(dict.fromkeys(docs))
         docs.sort()
         document_vectors = get_doc_vector(docs, lines, use_stem, stop_words)
-
+        print("Relevant document vectors created. Now calculating cosine similarity")
         # now, make all of those vectors have tf values, and then weights
         cosine_list = fill_vectors(document_vectors, og_query, docs)
         temp_list = []
@@ -73,12 +74,15 @@ def lookup(input, CLI):
             temp_list.append([docs[i], cosine_list[i]])
         temp_list.sort(key=lambda x: x[1])
         temp_list.reverse()
-        print("Query was: " + og_query + "\n")
         if CLI:
+            print("Query was: " + og_query + "\n")
             display(temp_list, get_doc_info(docs, lines))
         for elem in temp_list:
             final_list.append(elem[0])
-        return final_list
+        if K is None:
+            return final_list
+        else:
+            return final_list[:K]
 
 
 def get_term_lists(query, post_list):
@@ -107,11 +111,13 @@ def get_doc_vector(docs, lines, use_stem, use_stop_word):
         if line.startswith(".I " + str(docs[i])):
             scan_doc = True
         if start_scan is True and scan_doc is True:
+            line = re.sub('[\-]+', ' ', line)
+            line = re.sub('(?<=[,])(?=[^\s])(?=[A-Z])', ' ', line)
             words = str.split(line)
             for word in words:
                 # words are made lower case right from the start
                 word = word.lower()
-                word = re.sub('[^A-Za-z0-9$\-]+', '', word)
+                word = re.sub('[^A-Za-z0-9$]+', '', word)
                 if use_stem:
                     word = stem(word)
                 if use_stop_word:
@@ -120,7 +126,7 @@ def get_doc_vector(docs, lines, use_stem, use_stop_word):
                 else:
                     if word != '':
                         document_text += word + " "
-        if (line.startswith(".T") or line.startswith(".W")) and scan_doc:
+        if (line.startswith(".T") or line.startswith(".W") or line.startswith(".A")) and scan_doc:
             start_scan = True
         if line.startswith(".B") and scan_doc == True:
             scan_doc = False
@@ -160,6 +166,7 @@ def fill_vectors(documents, query, names):
     doc_matrix = np.delete(arr, 0, 1)
     cosine_matrix = (doc_matrix.T * query_vector).T
     cosine_similarity = cosine_matrix.sum(axis=0)
+    print("Cosine similarities found")
     return cosine_similarity
 
 
@@ -256,4 +263,4 @@ def stem(word):
 if __name__ == "__main__":
     query = input("Enter query: ").lower()
     someone_is_using_the_CLI = True
-    lookup(query, someone_is_using_the_CLI)
+    lookup(query, someone_is_using_the_CLI, 20)
