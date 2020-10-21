@@ -20,7 +20,7 @@ and in this case, the output will only be a list of K relevant documents with th
 """
 
 
-def lookup(input, CLI, K):
+def lookup(user_input, CLI, K):
     use_stem = False
     stop_words = False
     g = open("postings.txt", "r")
@@ -39,11 +39,18 @@ def lookup(input, CLI, K):
 
     if g.mode == 'r':
         # get query
-        og_query = input
+        og_query = user_input.lower()
         og_query = re.sub('[\-]+', ' ', og_query)
         og_query = re.sub('[^A-Za-z0-9$ ]+', '', og_query)
         newquery = og_query.split()
 
+        if stop_words:
+            stop_words = open("stopwords.txt", "r").read().split('\n')
+            for i in range(len(stop_words)):
+                stop_words[i] = stop_words[i].lower()
+            for word in og_query:
+                if word not in stop_words:
+                    newquery.append(word)
         if use_stem:
             stemmed_query = ""
             for word in newquery:
@@ -51,8 +58,8 @@ def lookup(input, CLI, K):
                 word = p.stem(word, 0, len(word) - 1)
                 stemmed_query += word + " "
             newquery = stemmed_query.split()
-        newquery.sort()
 
+        newquery.sort()
         term_list = get_term_lists(newquery, post_list)
         # remove duplicates if they exist
         term_list = list(dict.fromkeys(term_list))
@@ -75,7 +82,7 @@ def lookup(input, CLI, K):
         temp_list.sort(key=lambda x: x[1])
         temp_list.reverse()
         if CLI:
-            print("Query was: " + og_query + "\n")
+            print("Query was: " + user_input + "\n")
             display(temp_list, get_doc_info(docs, lines))
         for elem in temp_list:
             final_list.append(elem[0])
@@ -88,13 +95,20 @@ def lookup(input, CLI, K):
 def get_term_lists(query, post_list):
     term_list = []
     j = 0
-    for i in range(len(post_list)):
+    i = 0
+    last_result = 0
+    while i < len(post_list) + 1:
+        if i == len(post_list):
+            j += 1
+            i = last_result
         while query[j] == post_list[i][0]:
             term_list.append(i)
             j += 1
+            last_result = i
             if j == len(query):
                 return term_list
-
+        i += 1
+    return None
 
 def get_doc_vector(docs, lines, use_stem, use_stop_word):
     stop_words = []
@@ -150,11 +164,9 @@ def fill_vectors(documents, query, names):
                                  token_pattern=r"(?u)\b\w+\b")
 
     df1 = pd.DataFrame({"Query": [query]})
-    i = 0
-    for doc in documents:
-        df2 = pd.DataFrame({"Doc " + str(names[i]): [doc]})
-        df1 = df1.join(df2)
-        i += 1
+    df2 = pd.DataFrame([documents])
+    df1 = df1.join(df2)
+
     # Initialize
     doc_vec = vectorizer.fit_transform(df1.iloc[0])
     # Create dataFrame

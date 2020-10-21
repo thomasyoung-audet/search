@@ -43,6 +43,7 @@ def evaluate():
         i += 2
 
 
+    # querylist[0] = "I am interested in articles written either by Prieve or Udo Pooch"
     querylist[0] = "tss time sharing system operating system ibm computer"
     result_list = []
     # for query in querylist:
