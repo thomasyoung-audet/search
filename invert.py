@@ -33,12 +33,14 @@ def create_index():
                 document_num += 1
                 document_pos = 0
             if start_scan is True:
+                line = re.sub('[\-]+', ' ', line)
+                line = re.sub('(?<=[,])(?=[^\s])(?=[A-Z])', ' ', line)
                 words = str.split(line)
                 for word in words:
                     document_pos += 1
                     # words are made lower case right from the start
                     word = word.lower()
-                    word = re.sub('[^A-Za-z0-9$\-]+', '', word)
+                    word = re.sub('[^A-Za-z0-9$]+', '', word)
                     if use_stem:
                         word = stem(word)
                     if use_stop_word:
@@ -47,7 +49,7 @@ def create_index():
                     else:
                         if word != '':
                             fill_dict(word, term_dict, document_num, document_pos)
-            if line.startswith(".T") or line.startswith(".W"):
+            if line.startswith(".T") or line.startswith(".W") or line.startswith(".A"):
                 start_scan = True
     print_dict(term_dict, use_stem, use_stop_word)
 
