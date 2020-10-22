@@ -75,7 +75,7 @@ def lookup(user_input, CLI, K):
         docs = list(dict.fromkeys(docs))
         docs.sort()
         document_vectors = get_doc_vector(docs, lines, use_stem, stop_words)
-        print("Relevant document vectors created. Now calculating cosine similarity")
+        # print("Relevant document vectors created. Now calculating cosine similarity")
         # now, make all of those vectors have tf values, and then weights
         cosine_list = fill_vectors(document_vectors, og_query, docs)
         temp_list = []
@@ -185,7 +185,7 @@ def fill_vectors(documents, query, names):
     doc_matrix = np.delete(arr, 0, 1)
     cosine_matrix = (doc_matrix.T * query_vector).T
     cosine_similarity = cosine_matrix.sum(axis=0)
-    print("Cosine similarities found")
+    # print("Cosine similarities found")
     return cosine_similarity
 
 

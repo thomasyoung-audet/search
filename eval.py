@@ -13,7 +13,7 @@ The final output will be the average MAP and R-Precision values over all queries
 """
 
 
-def evaluate():
+def evaluate(K):
     stem = False
     stop_words = False
     g = open("postings.txt", "r")
@@ -24,12 +24,12 @@ def evaluate():
         stop_words = True
     g.close()
 
-    q = open("test_query.text", "r")
+    q = open("query.text", "r")
     query_content = q.readlines()
     q.close()
     querylist = get_queries(query_content, stem, stop_words)
 
-    rels = open("test_qrels.text", "r")
+    rels = open("qrels.text", "r")
     rel_context = rels.read().replace('\n', ' ').split()
     g.close()
     rel_context = list(filter('0'.__ne__, rel_context))
@@ -45,25 +45,31 @@ def evaluate():
     result_list = []
     i = 1
     for query in querylist:
-        print("Query #" + str(i))
-        result_list.append(search.lookup(query, False, 40))
-        print("==========================")
+        print("Creating result list for query #" + str(i))
+        result_list.append(search.lookup(query, False, K))
         i += 1
     # query = 'Articles on text formatting systems, including "what you see is what you get" systems.  Examples: t/nroff, scribe, bravo.'
     # result_list.append(search.lookup(query, False, 40))
     # calculate Mean Average Precision and R-precision
     # calculate average precision for each query, then average those
+    print("==========================")
     print("calculating MAP/R-P")
     average_precisions = []
     r_precisions = []
     for i in range(len(result_list)):
-        average_precisions.append(get_avg_prec(result_list[i], relevance_dict[i + 1])[0])
-        r_precisions.append(get_avg_prec(result_list[i], relevance_dict[i + 1])[1])
+        print("Query #" + str(i + 1))
+        if relevance_dict[i+1] is not None:
+            average_precisions.append(get_avg_prec(result_list[i], relevance_dict[i + 1])[0])
+            r_precisions.append(get_avg_prec(result_list[i], relevance_dict[i + 1])[1])
+            print("Average precision: " + str(average_precisions[-1]))
+            print("R precision: " + str(r_precisions[-1]))
+        else:
+            print("No relevant document list was provided, no calculations can be made")
     MAP = sum(average_precisions) / len(average_precisions)
     R_PREC = sum(r_precisions) / len(r_precisions)
 
     print("\nMAP is: " + str(MAP))
-    print("R-Precision is: " + str(R_PREC))
+    print("Average R-Precision is: " + str(R_PREC))
 
 
 def get_avg_prec(query_results, relevant_results):
@@ -118,4 +124,5 @@ def stem(word):
 
 
 if __name__ == "__main__":
-    evaluate()
+    K = 25
+    evaluate(K)
