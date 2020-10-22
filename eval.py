@@ -124,5 +124,5 @@ def stem(word):
 
 
 if __name__ == "__main__":
-    K = 25
+    K = 20
     evaluate(K)
