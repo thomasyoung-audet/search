@@ -80,12 +80,12 @@ def get_avg_prec(query_results, relevant_results):
     i = 0
     for result in query_results:
         i += 1
+        total_found += 1
         if result in relevant_results:
             relevant_found += 1
+            precision_history.append(relevant_found / total_found)
             if i < len(query_results):
                 r_counter += 1
-        total_found += 1
-        precision_history.append(relevant_found / total_found)
 
     r_precision = r_counter / len(query_results)
     return [sum(precision_history) / len(relevant_results), r_precision]
