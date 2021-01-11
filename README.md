@@ -1,5 +1,4 @@
-Files in this directory with sizes:
-          0 Jun 19 21:01 README
+Vector space model information retreival system.
 
     2187734 Jun 19 20:55 cacm.all              text of documents
         626 Jun 19 20:58 cite.info             key to citation info
